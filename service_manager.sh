@@ -104,6 +104,23 @@ stop_service() {
 # MAIN MENU #
 #############
 
+action=$1
+service_name=$2
+
+if [ -n "${action}" ] ; then
+  #---Go to menu based
+  echo "Menu based"
+else
+  #--validate action if it is start/stop/restart/health/auto-recover
+  #--check for service and validate if it is part of the list
+  #--validate the two inputs and then go to the action
+  if [ "${action}"="start" -o "${action}"="stop" -o "${action}"="restart" -o "${action}"="health" -o "${action}"="auto-recover"] ; then
+    if [ $(grep -Eo "${service_name}" services_config.cfg | wc -l) -gt 0 ] ; then
+      echo "Valid inputs"
+    fi
+  fi
+fi
+
 running=true
 while [ "${running}" = true ]
 do
