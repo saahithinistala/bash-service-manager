@@ -1,3 +1,6 @@
 *.log
 *.pid
 service_manager_bkp.sh
+.bkp.sh
+.original_script.sh
+service_manager.sh_*_latest
