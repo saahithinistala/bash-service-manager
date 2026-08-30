@@ -192,11 +192,9 @@ handle_health() {
 
 summary_report() {
   clear
-  script_dir=$(dirname "$0")
-
-  if [ -s "${script_dir}/status$$.log" ] ; then
+  if [ -s "${logs_dir}/status$$.log" ] ; then
     echo "===== AUTO RECOVERY SUMMARY ====="
-    cat "${script_dir}/status$$.log" | while read line
+    cat "${logs_dir}/status$$.log" | while read line
     do
       service_name=$(echo "$line" | cut -d "," -f1)
       status=$(echo "$line" | cut -d "," -f2)
@@ -211,8 +209,6 @@ summary_report() {
 handle_auto_recover() {
   service_name=$1
   service_name=$(echo "${service_name}" | tr '[:upper:]' '[:lower:]')
-  script_dir=$(dirname "$0")
-
 
   if [ "${service_name}" = "all" ] ; then
       cat services_config.cfg | while read line
@@ -227,14 +223,14 @@ handle_auto_recover() {
           handle_stop "${service_name}"
           handle_start "${service_name}"
             if [ "${status}" = "running" ] ; then
-              echo "${service_name},recovered" >> "${script_dir}/status$$.log"
+              echo "${service_name},recovered" >> "${logs_dir}/status$$.log"
             elif [ "${status}" = "not_running" ] ; then
-              echo "${service_name},failed" >> "${script_dir}/status$$.log"
+              echo "${service_name},failed" >> "${logs_dir}/status$$.log"
             else
-              echo "${service_name},running" >> "${script_dir}/status$$.log"
+              echo "${service_name},running" >> "${logs_dir}/status$$.log"
             fi
         else
-            echo "${service_name},running" >> "${script_dir}/status$$.log"
+            echo "${service_name},running" >> "${logs_dir}/status$$.log"
         fi
       done
   else
@@ -246,14 +242,14 @@ handle_auto_recover() {
         handle_stop "${service_name}"
         handle_start "${service_name}"
         if [ "${status}" = "running" ] ; then
-            echo "${service_name},recovered" >> "${script_dir}/status$$.log"
+            echo "${service_name},recovered" >> "${logs_dir}/status$$.log"
         elif [ "${status}" = "not_running" ] ; then
-            echo "${service_name},failed" >> "${script_dir}/status$$.log"
+            echo "${service_name},failed" >> "${logs_dir}/status$$.log"
         else
-            echo "${service_name},running" >> "${script_dir}/status$$.log"
+            echo "${service_name},running" >> "${logs_dir}/status$$.log"
         fi
       else
-            echo "${service_name},running" >> "${script_dir}/status$$.log"
+            echo "${service_name},running" >> "${logs_dir}/status$$.log"
       fi
   fi
 
@@ -263,103 +259,11 @@ handle_auto_recover() {
 #############
 # MAIN MENU #
 #############
+script_dir=$(dirname "$0")
+logs_dir="${script_dir}/logs"
 
-<<<<<<< HEAD
-running=true
-while [ "${running}" = true ]
-do
-  display_menu
-  case $choice in
-    1) service_menu
+mkdir -p "${logs_dir}"
 
-       if [ $? -ne 0 ]; then
-          continue
-       fi
-
-       if [ "${service_name}" = "ALL" ] ; then
-          cat services_config.cfg | while read line
-          do
-            service_name=$(echo "$line" | cut -d "," -f1)
-            start_script=$(echo "$line" | cut -d "," -f2)
-            port=$(echo "$line" | cut -d "," -f4)
-            services_directory=$(echo "$line" | cut -d "," -f5)
-
-            start_service "${services_directory}" "${service_name}" "${start_script}" "${port}"
-          done
-      else
-            start_script=$(grep "${service_name}" services_config.cfg | cut -d "," -f2)
-            port=$(grep "${service_name}" services_config.cfg | cut -d "," -f4)
-            services_directory=$(grep "${service_name}" services_config.cfg | cut -d "," -f5)
-
-            start_service "${services_directory}" "${service_name}" "${start_script}" "${port}"
-       fi
-       ;;
-    2) service_menu
-
-      if [ $? -ne 0 ]; then
-          continue
-      fi
-
-      if [ "${service_name}" = "ALL" ] ; then
-          cat services_config.cfg | while read line
-          do
-            service_name=$(echo "$line" | cut -d "," -f1)
-            stop_script=$(echo "$line" | cut -d "," -f3)
-            port=$(echo "$line" | cut -d "," -f4)
-            services_directory=$(echo "$line" | cut -d "," -f5)
-
-            stop_service "${services_directory}" "${service_name}" "${stop_script}" "${port}"
-          done
-      else
-            stop_script=$(grep "${service_name}" services_config.cfg | cut -d "," -f3)
-            port=$(grep "${service_name}" services_config.cfg| cut -d "," -f4)
-            services_directory=$(grep "${service_name}" services_config.cfg | cut -d "," -f5)
-
-            stop_service "${services_directory}" "${service_name}" "${stop_script}" "${port}"
-       fi
-       ;;
-    3) service_menu
-
-       if [ $? -ne 0 ]; then
-          continue
-       fi
-
-       if [ "${service_name}" = "ALL" ] ; then
-          cat services_config.cfg | while read line
-          do
-            service_name=$(echo "$line" | cut -d "," -f1)
-            start_script=$(echo "$line" | cut -d "," -f2)
-            stop_script=$(echo "$line" | cut -d "," -f3)
-            port=$(echo "$line" | cut -d "," -f4)
-            services_directory=$(echo "$line" | cut -d "," -f5)
-
-            stop_service "${services_directory}" "${service_name}" "${stop_script}" "${port}"
-            start_service "${services_directory}" "${service_name}" "${start_script}" "${port}"
-          done
-        else
-            start_script=$(grep "${service_name}" services_config.cfg | cut -d "," -f2)
-            stop_script=$(grep "${service_name}" services_config.cfg | cut -d "," -f3)
-            port=$(grep "${service_name}" services_config.cfg | cut -d "," -f4)
-            services_directory=$(grep "${service_name}" services_config.cfg | cut -d "," -f5)
-
-            stop_service "${services_directory}" "${service_name}" "${stop_script}" "${port}"
-            start_service "${services_directory}" "${service_name}" "${start_script}" "${port}"
-
-        fi
-      ;;
-    4) cat services_config.cfg | while read line
-       do
-         service_name=$(echo "$line" | cut -d "," -f1)
-         port=$(echo "$line" | cut -d "," -f4)
-         health_check "${port}" "${service_name}"
-       done
-      ;;
-    5) running=false
-      ;;
-    *) echo "Enter a valid choice"
-  esac
-done
-=======
 #--User Inputs--#
 action=$1
 service_name=$2
@@ -434,5 +338,4 @@ else
 fi
 
 #--Housekeeping
-script_dir=$(dirname "$0")
-rm -f "${script_dir}"/status$$.log
+rm -f "${logs_dir}"/status$$.log
