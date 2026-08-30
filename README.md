@@ -3,27 +3,27 @@ This is a small Bash scripting project I created as part of my SRE/DevOps practi
 The script can manage multiple services using both an interactive menu and command-line arguments.
 
 ## Features
--> Start a service
--> Stop a service
--> Restart a service
--> Perform health checks
--> Manage individual services or all services
--> Read service details from a configuration file
--> Check service status using port information
--> Run service actions through command-line arguments
--> Automatically recover services that are not running
--> Display an auto-recovery summary
+* Start a service
+* Stop a service
+* Restart a service
+* Perform health checks
+* Manage individual services or all services
+* Read service details from a configuration file
+* Check service status using port information
+* Run service actions through command-line arguments
+* Automatically recover services that are not running
+* Display an auto-recovery summary
 
 ## Files
--> service_manager.sh - Main Bash script
--> services_config.cfg - Contains service name, start script, stop script, port and service directory details
--> services - Contains test service start and stop scripts
+* service_manager.sh - Main Bash script
+* services_config.cfg - Contains service name, start script, stop script, port and service directory details
+* services - Contains test service start and stop scripts
 
 ## Services Used
--> Payment Service
--> Account Service
--> Notification Service
--> Batch Service
+1. Payment Service
+2. Account Service
+3. Notification Service
+4. Batch Service
 
 ## Run
 Interactive Mode:
