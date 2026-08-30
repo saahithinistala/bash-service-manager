@@ -60,7 +60,11 @@ stop_service() {
     stop_script=$3
     port=$4
 
-  echo "Stopping ${service_name}"
+  level="INFO"
+  message="Stopping ${service_name}"
+  write_log "${level}" "${message}"
+
+  echo "${message}"
   sh "${services_directory}/${service_name}/${stop_script}.sh"
 
   sleep 3
@@ -73,7 +77,11 @@ start_service() {
   start_script=$3
   port=$4
 
-  echo "Starting ${service_name}"
+  level="INFO"
+  message="Starting ${service_name}"
+  write_log "${level}" "${message}"
+
+  echo "${message}"
   sh "${services_directory}/${service_name}/${start_script}.sh"
 
   sleep 3
@@ -86,14 +94,28 @@ health_check() {
   status=""
 
   printf "\n"
-  echo "Performing health check on ${service_name}"
+  level="INFO"
+  message="Performing health check on ${service_name}"
+  write_log "${level}" "${message}"
+
+  echo "${message}"
   count=$(/usr/sbin/lsof -i tcp:"${port}" | wc -l)
   if [ "${count}" -eq 0 ] ; then
       status="not_running"
+
+      level="WARN"
+      message="${service_name} is not running"
+      write_log "${level}" "${message}"
+
       echo "${service_name} --> NOT RUNNING"
       printf "\n"
   else
       status="running"
+
+      level="INFO"
+      message="${service_name} is running"
+      write_log "${level}" "${message}"
+
       echo "${service_name} --> RUNNING"
       printf "\n"
   fi
@@ -143,6 +165,7 @@ handle_start() {
             services_directory=$(grep "${service_name}" services_config.cfg | cut -d "," -f5)
 
             start_service "${services_directory}" "${service_name}" "${start_script}" "${port}"
+
     fi
 }
 
@@ -218,13 +241,29 @@ handle_auto_recover() {
         health_check "${port}" "${service_name}"
 
         if [ "${status}" = "not_running" ] ; then
-          echo "Performing auto-recovery for ${service_name}"
+
+          level="WARN"
+          message="Auto-recovery triggered for ${service_name}"
+          write_log "${level}" "${message}"
+
+          echo "${message}"
           printf "\n"
+
           handle_stop "${service_name}"
           handle_start "${service_name}"
             if [ "${status}" = "running" ] ; then
+
+              level="INFO"
+              message="${service_name} recovered successfully"
+              write_log "${level}" "${message}"
+
               echo "${service_name},recovered" >> "${logs_dir}/status$$.log"
             elif [ "${status}" = "not_running" ] ; then
+
+              level="ERROR"
+              message="${service_name} recovery failed"
+              write_log "${level}" "${message}"
+
               echo "${service_name},failed" >> "${logs_dir}/status$$.log"
             else
               echo "${service_name},running" >> "${logs_dir}/status$$.log"
@@ -237,23 +276,96 @@ handle_auto_recover() {
       port=$(grep "${service_name}" services_config.cfg | cut -d "," -f4)
       health_check "${port}" "${service_name}"
       if [ "${status}" = "not_running" ] ; then
-        echo "Performing auto-recovery for ${service_name}"
-        printf "\n"
-        handle_stop "${service_name}"
-        handle_start "${service_name}"
-        if [ "${status}" = "running" ] ; then
-            echo "${service_name},recovered" >> "${logs_dir}/status$$.log"
-        elif [ "${status}" = "not_running" ] ; then
+
+          level="WARN"
+          message="Auto-recovery triggered for ${service_name}"
+          write_log "${level}" "${message}"
+
+          echo "${message}"
+          printf "\n"
+
+          handle_stop "${service_name}"
+          handle_start "${service_name}"
+          if [ "${status}" = "running" ] ; then
+
+              level="INFO"
+              message="${service_name} recovered successfully"
+              write_log "${level}" "${message}"
+
+              echo "${service_name},recovered" >> "${logs_dir}/status$$.log"
+          elif [ "${status}" = "not_running" ] ; then
+
+            level="ERROR"
+            message="${service_name} recovery failed"
+            write_log "${level}" "${message}"
+
             echo "${service_name},failed" >> "${logs_dir}/status$$.log"
-        else
+          else
+              level="INFO"
+              message="${service_name} recovered successfully"
+              write_log "${level}" "${message}"
+
             echo "${service_name},running" >> "${logs_dir}/status$$.log"
-        fi
+          fi
       else
             echo "${service_name},running" >> "${logs_dir}/status$$.log"
       fi
   fi
 
   summary_report
+  send_alert
+}
+
+send_alert(){
+  timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+  alert_date=$(date +"%Y-%m-%d")
+
+  if [ ! -f "${script_dir}/.smtp_config" ]; then
+    echo "SMTP config file not found. Email alert skipped."
+    return 1
+  fi
+
+  . "${script_dir}/.smtp_config"
+
+  if [ "$(grep -c "failed" "${logs_dir}/status$$.log")" -gt 0 ] ; then
+    cat "${logs_dir}/status$$.log" | grep "failed" | while read line
+    do
+      service_name=$(echo "${line}" | cut -d "," -f1)
+      email_file="/tmp/service_manager_alert_$$.txt"
+
+cat > "${email_file}" <<EOF
+From: Bash Service Manager <$SMTP_USER>
+To: <$SMTP_TO>
+Subject: ALERT - ${service_name} recovery failed
+
+Service: ${service_name}
+Status: FAILED
+Time: ${timestamp}
+
+Automatic recovery was attempted but the service is still not running.
+EOF
+      curl --silent --show-error \
+        --url "smtps://smtp.gmail.com:465" \
+        --ssl-reqd \
+        --mail-from "$SMTP_USER" \
+        --mail-rcpt "$SMTP_TO" \
+        --user "$SMTP_USER:$SMTP_APP_PASSWORD" \
+        --upload-file "${email_file}"
+
+      rm -f "${email_file}"
+
+      echo "${timestamp} ALERT ${service_name} recovery failed after restart attempt" >> "${logs_dir}/alert_${alert_date}.log"
+    done
+  fi
+
+}
+
+write_log(){
+  level=$1
+  message=$2
+  timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+
+  echo "${timestamp} ${level} ${message}" >> "${service_manager_log}"
 }
 
 #############
@@ -261,8 +373,10 @@ handle_auto_recover() {
 #############
 script_dir=$(dirname "$0")
 logs_dir="${script_dir}/logs"
-
 mkdir -p "${logs_dir}"
+
+today_date=$(date +"%Y-%m-%d")
+service_manager_log="${logs_dir}/service_manager_${today_date}.log"
 
 #--User Inputs--#
 action=$1
@@ -339,3 +453,4 @@ fi
 
 #--Housekeeping
 rm -f "${logs_dir}"/status$$.log
+find "${logs_dir}" -type f -name "alert_*.log" -mtime +30 -exec rm -f {} \;
