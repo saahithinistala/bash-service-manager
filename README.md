@@ -35,11 +35,11 @@ This displays a menu where the required service operation can be selected.
 ### Command-Line Mode
 Examples:
 
-./service_manager.sh start payment-service
-./service_manager.sh stop payment-service
-./service_manager.sh restart payment-service
-./service_manager.sh health all
-./service_manager.sh auto-recover all
+* ./service_manager.sh start payment-service
+* ./service_manager.sh stop payment-service
+* ./service_manager.sh restart payment-service
+* ./service_manager.sh health all
+* ./service_manager.sh auto-recover all
 
 The script supports both individual service names and "all".
 
